@@ -101,6 +101,62 @@ func NewPusher(addrs []string, topic string, opts ...PushOption) *Pusher {
 	return pusher
 }
 
+// NewPusherTLS returns a Pusher with the given Kafka addresses and topic.
+func NewPusherTLS(addrs []string, topic string, tls *tls.Config, opts ...PushOption) *Pusher {
+	producer := &kafka.Writer{
+		Addr:        kafka.TCP(addrs...),
+		Topic:       topic,
+		Balancer:    &kafka.LeastBytes{},
+		Compression: kafka.Snappy,
+		Transport: &kafka.Transport{
+			TLS: tls,
+		},
+	}
+
+	var options pushOptions
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	// apply kafka.Writer options
+	producer.AllowAutoTopicCreation = options.allowAutoTopicCreation
+	if options.balancer != nil {
+		producer.Balancer = options.balancer
+	}
+
+	pusher := &Pusher{
+		producer: producer,
+		topic:    topic,
+	}
+
+	// if syncPush is true, return the pusher directly
+	if options.syncPush {
+		producer.BatchSize = 1
+		return pusher
+	}
+
+	// apply ChunkExecutor options
+	var chunkOpts []executors.ChunkOption
+	if options.chunkSize > 0 {
+		chunkOpts = append(chunkOpts, executors.WithChunkBytes(options.chunkSize))
+	}
+	if options.flushInterval > 0 {
+		chunkOpts = append(chunkOpts, executors.WithFlushInterval(options.flushInterval))
+	}
+
+	pusher.executor = executors.NewChunkExecutor(func(tasks []interface{}) {
+		chunk := make([]kafka.Message, len(tasks))
+		for i := range tasks {
+			chunk[i] = tasks[i].(kafka.Message)
+		}
+		if err := pusher.producer.WriteMessages(context.Background(), chunk...); err != nil {
+			logx.Error(err)
+		}
+	}, chunkOpts...)
+
+	return pusher
+}
+
 // Close closes the Pusher and releases any resources used by it.
 func (p *Pusher) Close() error {
 	if p.executor != nil {
