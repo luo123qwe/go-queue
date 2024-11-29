@@ -3,7 +3,7 @@ package kq
 import (
 	"context"
 	"crypto/tls"
-	"github.com/luo123qwe/go-queue/kq/internal"
+	"github.com/zeromicro/go-queue/kq/internal"
 	"strconv"
 	"time"
 

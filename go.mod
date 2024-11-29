@@ -1,4 +1,4 @@
-module github.com/luo123qwe/go-queue
+module github.com/zeromicro/go-queue
 
 go 1.20
 
@@ -9,7 +9,6 @@ require (
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/segmentio/kafka-go v0.4.47
 	github.com/stretchr/testify v1.9.0
-	github.com/zeromicro/go-queue v1.2.2
 	github.com/zeromicro/go-zero v1.6.6
 	go.opentelemetry.io/otel v1.19.0
 )
