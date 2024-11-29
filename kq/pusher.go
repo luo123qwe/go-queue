@@ -2,11 +2,12 @@ package kq
 
 import (
 	"context"
+	"crypto/tls"
+	"github.com/luo123qwe/go-queue/kq/internal"
 	"strconv"
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/zeromicro/go-queue/kq/internal"
 	"github.com/zeromicro/go-zero/core/executors"
 	"github.com/zeromicro/go-zero/core/logx"
 	"go.opentelemetry.io/otel"
@@ -37,6 +38,8 @@ type (
 
 		// syncPush is used to enable sync push
 		syncPush bool
+		// tls 支持
+		TLS *tls.Config
 	}
 )
 
@@ -54,6 +57,11 @@ func NewPusher(addrs []string, topic string, opts ...PushOption) *Pusher {
 		opt(&options)
 	}
 
+	if options.TLS != nil {
+		producer.Transport = &kafka.Transport{
+			TLS: options.TLS,
+		}
+	}
 	// apply kafka.Writer options
 	producer.AllowAutoTopicCreation = options.allowAutoTopicCreation
 	if options.balancer != nil {
